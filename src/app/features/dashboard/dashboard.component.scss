@@ -1,0 +1,474 @@
+.dashboard-container {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+// Page Header
+.page-header {
+  margin-bottom: 32px;
+
+  .page-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin-bottom: 8px;
+  }
+
+  .page-description {
+    font-size: 16px;
+    color: #666;
+    margin: 0;
+  }
+}
+
+// Loading State
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 300px;
+  gap: 20px;
+
+  p {
+    color: #666;
+    font-size: 16px;
+  }
+}
+
+// Statistics Grid
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.stat-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+  }
+
+  mat-card-content {
+    padding: 24px !important;
+  }
+
+  .stat-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .stat-info {
+    flex: 1;
+
+    .stat-title {
+      font-size: 14px;
+      font-weight: 500;
+      color: #666;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .stat-value {
+      font-size: 32px;
+      font-weight: 700;
+      color: #1a1a1a;
+      margin-bottom: 4px;
+      line-height: 1;
+    }
+
+    .stat-change {
+      font-size: 13px;
+      color: #2e7d32;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+  }
+
+  .stat-icon {
+    flex-shrink: 0;
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    mat-icon {
+      font-size: 28px;
+      width: 28px;
+      height: 28px;
+      color: white;
+    }
+  }
+
+  &.stat-card-primary .stat-icon {
+    background: linear-gradient(135deg, #1976d2, #1565c0);
+  }
+
+  &.stat-card-accent .stat-icon {
+    background: linear-gradient(135deg, #2e7d32, #388e3c);
+  }
+
+  &.stat-card-warn .stat-icon {
+    background: linear-gradient(135deg, #f57c00, #ef6c00);
+  }
+}
+
+// Quick Actions
+.quick-actions {
+  margin-bottom: 32px;
+
+  mat-card-header {
+    margin-bottom: 16px;
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+
+    button {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 160px;
+    }
+  }
+}
+
+// Recent Reports
+.recent-reports {
+  margin-bottom: 32px;
+
+  mat-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+
+    mat-card-title {
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    .table-actions button {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+  }
+
+  .no-data {
+    text-align: center;
+    padding: 48px 24px;
+    color: #666;
+
+    mat-icon {
+      font-size: 48px;
+      width: 48px;
+      height: 48px;
+      margin-bottom: 16px;
+      opacity: 0.5;
+    }
+
+    p {
+      font-size: 16px;
+      margin: 0;
+    }
+  }
+}
+
+// Reports Table
+.reports-table {
+  width: 100%;
+  background: transparent;
+
+  .mat-mdc-header-cell {
+    font-weight: 600;
+    color: #1a1a1a;
+    background: #f8f9fa;
+  }
+
+  .table-row {
+    transition: background-color 0.2s ease;
+
+    &:hover {
+      background: #f8f9fa;
+    }
+  }
+
+  .report-id {
+    display: flex;
+    flex-direction: column;
+    
+    .report-date {
+      color: #666;
+      font-size: 12px;
+    }
+  }
+
+  .account-info {
+    display: flex;
+    flex-direction: column;
+
+    .account-number {
+      font-family: 'Roboto Mono', monospace;
+      font-weight: 500;
+    }
+
+    .account-holder {
+      color: #666;
+      font-size: 12px;
+      text-transform: capitalize;
+    }
+  }
+
+  .bank-info {
+    display: flex;
+    flex-direction: column;
+
+    small {
+      color: #666;
+      font-size: 12px;
+    }
+  }
+
+  .risk-chip {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+
+    .risk-score {
+      margin-left: 4px;
+      font-weight: 500;
+    }
+
+    &.risk-badge-high {
+      background: #ffebee;
+      color: #c62828;
+    }
+
+    &.risk-badge-medium {
+      background: #fff8e1;
+      color: #ef6c00;
+    }
+
+    &.risk-badge-low {
+      background: #e8f5e8;
+      color: #2e7d32;
+    }
+  }
+
+  .status-chip {
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: capitalize;
+
+    &.status-badge-pending {
+      background: #fff3e0;
+      color: #ef6c00;
+    }
+
+    &.status-badge-review {
+      background: #e3f2fd;
+      color: #1976d2;
+    }
+
+    &.status-badge-approved {
+      background: #e8f5e8;
+      color: #2e7d32;
+    }
+
+    &.status-badge-rejected {
+      background: #ffebee;
+      color: #c62828;
+    }
+
+    &.status-badge-frozen {
+      background: #f3e5f5;
+      color: #7b1fa2;
+    }
+  }
+
+  .action-button {
+    min-width: auto;
+    padding: 8px 12px;
+
+    mat-icon {
+      margin-right: 4px;
+    }
+  }
+}
+
+// Additional Statistics
+.additional-stats {
+  .stats-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+
+  .chart-card {
+    mat-card-header {
+      margin-bottom: 16px;
+    }
+  }
+
+  .bank-stats, .crime-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .bank-stat-item, .crime-stat-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    transition: background-color 0.2s ease;
+
+    &:hover {
+      background: #e9ecef;
+    }
+
+    .bank-name, .crime-type {
+      font-weight: 500;
+      color: #1a1a1a;
+    }
+
+    .bank-count, .crime-count {
+      font-weight: 600;
+      color: #1976d2;
+      background: #e3f2fd;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+    }
+  }
+}
+
+// Responsive Design
+@media (max-width: 1024px) {
+  .stats-grid {
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 20px;
+  }
+
+  .additional-stats .stats-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-container {
+    padding: 16px;
+  }
+
+  .page-header {
+    margin-bottom: 24px;
+
+    .page-title {
+      font-size: 24px;
+    }
+
+    .page-description {
+      font-size: 14px;
+    }
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .stat-card {
+    .stat-content {
+      .stat-info .stat-value {
+        font-size: 28px;
+      }
+
+      .stat-icon {
+        width: 48px;
+        height: 48px;
+
+        mat-icon {
+          font-size: 24px;
+          width: 24px;
+          height: 24px;
+        }
+      }
+    }
+  }
+
+  .quick-actions .action-buttons {
+    flex-direction: column;
+
+    button {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+
+  .reports-table {
+    font-size: 13px;
+
+    .mat-mdc-cell, .mat-mdc-header-cell {
+      padding: 8px 4px;
+
+      &:first-child {
+        padding-left: 12px;
+      }
+
+      &:last-child {
+        padding-right: 12px;
+      }
+    }
+  }
+}
+
+@media (max-width: 600px) {
+  .recent-reports mat-card-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+
+    .table-actions {
+      align-self: flex-end;
+    }
+  }
+
+  .account-info .account-number {
+    font-size: 12px;
+  }
+}
+
+// Animation
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.stats-grid, .recent-reports, .quick-actions {
+  animation: fadeIn 0.5s ease-out;
+}
+
+.stat-card {
+  animation: fadeIn 0.5s ease-out;
+}

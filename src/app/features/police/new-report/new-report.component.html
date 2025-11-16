@@ -1,0 +1,340 @@
+<div class="new-report-container">
+  <!-- Page Header -->
+  <div class="page-header">
+    <h1 class="page-title">File New Fraud Report</h1>
+    <p class="page-description">Report suspicious bank accounts with OCR-powered data extraction and AI risk assessment</p>
+  </div>
+
+  <form [formGroup]="reportForm" (ngSubmit)="onSubmit()" class="report-form">
+    
+    <!-- Account Details Section -->
+    <mat-card class="form-section">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>account_balance</mat-icon>
+          Account Details
+        </mat-card-title>
+      </mat-card-header>
+      
+      <mat-card-content>
+        <div class="form-grid">
+          <mat-form-field appearance="outline">
+            <mat-label>Account Number</mat-label>
+            <input matInput formControlName="accountNumber" placeholder="Enter account number" maxlength="18">
+            <mat-icon matSuffix>account_box</mat-icon>
+            <mat-error>{{ getFieldError('accountNumber') }}</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Account Holder Name</mat-label>
+            <input matInput formControlName="accountHolderName" placeholder="Enter account holder name">
+            <mat-icon matSuffix>person</mat-icon>
+            <mat-error>{{ getFieldError('accountHolderName') }}</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Bank Name</mat-label>
+            <mat-select formControlName="bankName">
+              <mat-option *ngFor="let bank of banks" [value]="bank">
+                {{ bank }}
+              </mat-option>
+            </mat-select>
+            <mat-icon matSuffix>account_balance</mat-icon>
+            <mat-error>{{ getFieldError('bankName') }}</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Branch Name</mat-label>
+            <input matInput formControlName="branchName" placeholder="Enter branch name">
+            <mat-icon matSuffix>business</mat-icon>
+            <mat-error>{{ getFieldError('branchName') }}</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>IFSC Code</mat-label>
+            <input matInput formControlName="ifscCode" placeholder="e.g., SBIN0001234" style="text-transform: uppercase">
+            <mat-icon matSuffix>confirmation_number</mat-icon>
+            <mat-error>{{ getFieldError('ifscCode') }}</mat-error>
+          </mat-form-field>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Complaint Details Section -->
+    <mat-card class="form-section">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>report_problem</mat-icon>
+          Complaint Details
+        </mat-card-title>
+      </mat-card-header>
+      
+      <mat-card-content>
+        <div class="form-grid">
+          <mat-form-field appearance="outline">
+            <mat-label>FIR/Case Number</mat-label>
+            <input matInput formControlName="firNumber" placeholder="Enter FIR number">
+            <mat-icon matSuffix>badge</mat-icon>
+            <mat-error>{{ getFieldError('firNumber') }}</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Crime Type</mat-label>
+            <mat-select formControlName="crimeType">
+              <mat-option *ngFor="let crime of crimeTypes" [value]="crime">
+                {{ crime }}
+              </mat-option>
+            </mat-select>
+            <mat-icon matSuffix>category</mat-icon>
+            <mat-error>{{ getFieldError('crimeType') }}</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Amount Involved (Optional)</mat-label>
+            <input matInput type="number" formControlName="amountInvolved" placeholder="Enter amount in rupees">
+            <span matTextPrefix>₹ </span>
+            <mat-icon matSuffix>currency_rupee</mat-icon>
+            <mat-error>{{ getFieldError('amountInvolved') }}</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Description</mat-label>
+            <textarea 
+              matInput 
+              formControlName="description" 
+              placeholder="Provide detailed description of the fraud case..."
+              rows="4"
+              maxlength="2000">
+            </textarea>
+            <mat-hint align="end">{{ reportForm.get('description')?.value?.length || 0 }}/2000</mat-hint>
+            <mat-error>{{ getFieldError('description') }}</mat-error>
+          </mat-form-field>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Evidence & OCR Section -->
+    <mat-card class="form-section">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>scanner</mat-icon>
+          Evidence & OCR Processing
+        </mat-card-title>
+        <mat-card-subtitle>Upload documents containing bank account details for automatic extraction</mat-card-subtitle>
+      </mat-card-header>
+      
+      <mat-card-content>
+        <!-- File Upload Area -->
+        <div 
+          class="file-upload-area"
+          [class.dragover]="false"
+          (dragover)="onDragOver($event)"
+          (drop)="onDrop($event)"
+          (click)="fileInput.click()">
+          <div class="upload-content">
+            <mat-icon class="upload-icon">cloud_upload</mat-icon>
+            <div class="upload-text">Click to upload or drag and drop</div>
+            <div class="upload-subtext">Supports JPEG, PNG files up to 10MB each</div>
+          </div>
+          <input #fileInput type="file" hidden accept="image/*" multiple (change)="onFileSelected($event)">
+        </div>
+
+        <!-- Uploaded Files List -->
+        <div *ngIf="uploadedFiles.length > 0" class="uploaded-files">
+          <div class="uploaded-files-header">
+            <h4>Uploaded Files</h4>
+            <span class="files-count">{{ uploadedFiles.length }} file(s)</span>
+          </div>
+          
+          <div class="file-list">
+            <div *ngFor="let file of uploadedFiles; let i = index" class="file-item">
+              <div class="file-info">
+                <mat-icon class="file-icon">image</mat-icon>
+                <div class="file-details">
+                  <span class="file-name">{{ file.name }}</span>
+                  <span class="file-size">{{ getFileSize(file.size) }}</span>
+                </div>
+              </div>
+              <button 
+                type="button" 
+                mat-icon-button 
+                color="warn" 
+                (click)="removeFile(i)"
+                class="remove-button">
+                <mat-icon>close</mat-icon>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- OCR Processing -->
+        <div *ngIf="uploadedFiles.length > 0" class="ocr-processing">
+          <div class="ocr-header">
+            <h4>OCR Processing</h4>
+            <div class="ocr-status">
+              <mat-chip [color]="ocrCompleted ? 'primary' : 'default'">
+                <mat-icon *ngIf="ocrCompleted">check_circle</mat-icon>
+                <mat-icon *ngIf="isOcrProcessing">hourglass_empty</mat-icon>
+                <mat-icon *ngIf="!isOcrProcessing && !ocrCompleted">radio_button_unchecked</mat-icon>
+                {{ isOcrProcessing ? 'Processing...' : ocrCompleted ? 'Completed' : 'Ready' }}
+              </mat-chip>
+            </div>
+          </div>
+
+          <div class="ocr-actions">
+            <button 
+              type="button" 
+              mat-raised-button 
+              color="primary"
+              [disabled]="isOcrProcessing || ocrCompleted"
+              (click)="processOCR()">
+              <mat-icon *ngIf="!isOcrProcessing">scanner</mat-icon>
+              <mat-spinner diameter="20" *ngIf="isOcrProcessing" class="button-spinner"></mat-spinner>
+              {{ isOcrProcessing ? 'Processing OCR...' : 'Run OCR Extraction' }}
+            </button>
+          </div>
+
+          <!-- OCR Results -->
+          <div *ngIf="ocrResults && ocrCompleted" class="ocr-results">
+            <div class="results-header">
+              <h4>Extracted Data</h4>
+              <div class="confidence-score">
+                <span>Confidence: {{ (ocrResults.confidence * 100) | number:'1.0-0' }}%</span>
+              </div>
+            </div>
+            
+            <div class="extracted-fields">
+              <div class="field-group">
+                <label>Account Number:</label>
+                <span>{{ ocrResults.extractedData.accountNumber || 'Not found' }}</span>
+              </div>
+              <div class="field-group">
+                <label>Account Holder:</label>
+                <span>{{ ocrResults.extractedData.accountHolderName || 'Not found' }}</span>
+              </div>
+              <div class="field-group">
+                <label>Bank Name:</label>
+                <span>{{ ocrResults.extractedData.bankName || 'Not found' }}</span>
+              </div>
+              <div class="field-group">
+                <label>IFSC Code:</label>
+                <span>{{ ocrResults.extractedData.ifscCode || 'Not found' }}</span>
+              </div>
+            </div>
+
+            <div class="ocr-actions">
+              <button 
+                type="button" 
+                mat-raised-button 
+                color="accent"
+                (click)="useExtractedData()">
+                <mat-icon>input</mat-icon>
+                Use Extracted Data
+              </button>
+            </div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- ANN Risk Assessment Section -->
+    <mat-card *ngIf="annResults || isAnnProcessing" class="form-section risk-assessment">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>psychology</mat-icon>
+          AI Risk Assessment
+        </mat-card-title>
+        <mat-card-subtitle>Artificial Neural Network fraud risk analysis</mat-card-subtitle>
+      </mat-card-header>
+      
+      <mat-card-content>
+        <div *ngIf="isAnnProcessing" class="processing-state">
+          <mat-spinner></mat-spinner>
+          <div class="processing-text">
+            <h4>Analyzing Risk Factors...</h4>
+            <p>Our AI model is evaluating account patterns, transaction history, and fraud indicators</p>
+          </div>
+        </div>
+
+        <div *ngIf="annResults && !isAnnProcessing" class="risk-results">
+          <div class="risk-score-display">
+            <div class="risk-gauge" [ngClass]="getRiskColor(annResults.confidenceScore)">
+              <div class="score-value">{{ (annResults.confidenceScore * 100) | number:'1.0-0' }}%</div>
+              <div class="score-label">Risk Score</div>
+            </div>
+            
+            <div class="risk-details">
+              <h3>{{ getRiskLevel(annResults.confidenceScore) }} Risk Level</h3>
+              <p>Based on AI analysis of multiple risk factors</p>
+              <mat-chip [color]="getRiskColor(annResults.confidenceScore)">
+                {{ getRiskLevel(annResults.confidenceScore) }} Risk - {{ (annResults.confidenceScore * 100) | number:'1.0-0' }}%
+              </mat-chip>
+            </div>
+          </div>
+
+          <div class="risk-factors">
+            <h4>Risk Factors Analyzed</h4>
+            <div class="factors-list">
+              <div *ngFor="let factor of annResults.factors" class="factor-item">
+                <div class="factor-info">
+                  <span class="factor-name">{{ factor.factor }}</span>
+                  <span class="factor-description">{{ factor.description }}</span>
+                </div>
+                <div class="factor-weight">
+                  <mat-progress-bar 
+                    mode="determinate" 
+                    [value]="factor.weight * 100"
+                    [color]="getRiskColor(factor.weight)">
+                  </mat-progress-bar>
+                  <span class="weight-value">{{ (factor.weight * 100) | number:'1.0-0' }}%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div *ngIf="!annResults && !isAnnProcessing" class="ann-prompt">
+          <div class="prompt-content">
+            <mat-icon>psychology</mat-icon>
+            <div class="prompt-text">
+              <h4>AI Risk Assessment Available</h4>
+              <p>Fill in account details to enable AI-powered fraud risk analysis</p>
+            </div>
+          </div>
+          <button 
+            type="button" 
+            mat-raised-button 
+            color="primary"
+            (click)="runAnnAnalysis()"
+            [disabled]="!reportForm.get('accountNumber')?.value">
+            <mat-icon>analytics</mat-icon>
+            Run Risk Analysis
+          </button>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Form Actions -->
+    <div class="form-actions">
+      <button 
+        type="button" 
+        mat-button 
+        color="warn"
+        (click)="resetForm()"
+        [disabled]="isSubmitting">
+        <mat-icon>refresh</mat-icon>
+        Reset Form
+      </button>
+      
+      <button 
+        type="submit" 
+        mat-raised-button 
+        color="primary"
+        [disabled]="reportForm.invalid || isSubmitting">
+        <mat-spinner diameter="20" *ngIf="isSubmitting" class="button-spinner"></mat-spinner>
+        <mat-icon *ngIf="!isSubmitting">send</mat-icon>
+        {{ isSubmitting ? 'Submitting Report...' : 'Submit Fraud Report' }}
+      </button>
+    </div>
+  </form>
+</div>
