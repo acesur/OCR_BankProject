@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -15,9 +15,19 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatStepperModule } from '@angular/material/stepper';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatChipsModule } from '@angular/material/chips';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatDividerModule } from '@angular/material/divider';
 
 import { FraudReportService } from '../../../core/services/fraud-report.service';
-import { CrimeType, CreateReportRequest } from '../../../core/models/fraud-report.model';
+import { OcrService } from '../../../core/services/ocr.service';
+import { 
+  CrimeType, 
+  CreateReportRequest,
+  OcrData,
+  OcrSuccessResponse,
+  FileValidationResult,
+  FileUploadError
+} from '../../../core/models/fraud-report.model';
 
 @Component({
   selector: 'app-new-report',
@@ -35,12 +45,16 @@ import { CrimeType, CreateReportRequest } from '../../../core/models/fraud-repor
     MatProgressBarModule,
     MatStepperModule,
     MatSnackBarModule,
-    MatChipsModule
+    MatChipsModule,
+    MatMenuModule,
+    MatDividerModule
   ],
   templateUrl: './new-report.component.html',
   styleUrls: ['./new-report.component.scss']
 })
 export class NewReportComponent implements OnInit, OnDestroy {
+  @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
+  
   reportForm!: FormGroup;
   isSubmitting = false;
   
@@ -48,7 +62,12 @@ export class NewReportComponent implements OnInit, OnDestroy {
   uploadedFiles: File[] = [];
   isOcrProcessing = false;
   ocrCompleted = false;
-  ocrResults: any = null;
+  ocrResults: OcrData | null = null;
+  processingTime = 0;
+  isDragOver = false;
+  previewUrl: string | null = null;
+  hasOcrError = false;
+  ocrErrorMessage = '';
   
   // ANN State
   isAnnProcessing = false;
@@ -73,6 +92,7 @@ export class NewReportComponent implements OnInit, OnDestroy {
   constructor(
     private fb: FormBuilder,
     private fraudReportService: FraudReportService,
+    private ocrService: OcrService,
     private router: Router,
     private snackBar: MatSnackBar
   ) {}
@@ -94,6 +114,7 @@ export class NewReportComponent implements OnInit, OnDestroy {
       bankName: ['', Validators.required],
       branchName: ['', Validators.required],
       ifscCode: ['', [Validators.pattern(/^[A-Z]{4}0[A-Z0-9]{6}$/)]],
+      routingNumber: [''], // Add routing number field
       
       // Complaint Details
       firNumber: ['', [Validators.required, Validators.pattern(/^[A-Z0-9\/\-]+$/i)]],
@@ -106,51 +127,104 @@ export class NewReportComponent implements OnInit, OnDestroy {
   // File Upload Handling
   onFileSelected(event: any): void {
     const files = Array.from(event.target.files) as File[];
-    this.uploadedFiles = [...this.uploadedFiles, ...files];
     
-    if (this.uploadedFiles.length > 0) {
-      this.snackBar.open(`${files.length} file(s) uploaded successfully`, 'Close', { duration: 3000 });
+    for (const file of files) {
+      this.handleFile(file);
     }
   }
 
   removeFile(index: number): void {
     this.uploadedFiles.splice(index, 1);
-    this.ocrCompleted = false;
-    this.ocrResults = null;
+    this.resetOcrState();
   }
 
   onDragOver(event: DragEvent): void {
     event.preventDefault();
+    event.stopPropagation();
+    this.isDragOver = true;
+  }
+
+  onDragLeave(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragOver = false;
   }
 
   onDrop(event: DragEvent): void {
     event.preventDefault();
+    event.stopPropagation();
+    this.isDragOver = false;
+    
     const files = Array.from(event.dataTransfer?.files || []) as File[];
-    this.uploadedFiles = [...this.uploadedFiles, ...files];
+    for (const file of files) {
+      this.handleFile(file);
+    }
+  }
+
+  triggerFileInput(): void {
+    this.fileInput.nativeElement.click();
+  }
+
+  private handleFile(file: File): void {
+    const validation = this.ocrService.validateFile(file);
+    
+    if (!validation.isValid) {
+      this.showError(validation.error!);
+      return;
+    }
+
+    // Only allow one file for now (as per API spec)
+    this.uploadedFiles = [file];
+    this.createPreview(file);
+    this.snackBar.open('File uploaded successfully', 'Close', { duration: 3000 });
+  }
+
+  private createPreview(file: File): void {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      this.previewUrl = e.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  private resetOcrState(): void {
+    this.ocrCompleted = false;
+    this.ocrResults = null;
+    this.processingTime = 0;
+    this.hasOcrError = false;
+    this.ocrErrorMessage = '';
+    this.previewUrl = null;
   }
 
   // OCR Processing
   processOCR(): void {
     if (this.uploadedFiles.length === 0) {
-      this.snackBar.open('Please upload files first', 'Close', { duration: 3000 });
+      this.snackBar.open('Please upload a file first', 'Close', { duration: 3000 });
       return;
     }
 
     this.isOcrProcessing = true;
+    this.hasOcrError = false;
+    this.ocrErrorMessage = '';
+    this.processingTime = 0;
+
+    const file = this.uploadedFiles[0];
     
-    // Simulate OCR processing with fraud report service
-    this.fraudReportService.processOCR('mock-file-id')
+    this.ocrService.processDocument(file)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (result) => {
+        next: (response: OcrSuccessResponse) => {
           this.isOcrProcessing = false;
           this.ocrCompleted = true;
-          this.ocrResults = result;
-          this.snackBar.open('OCR processing completed successfully!', 'Close', { duration: 3000 });
+          this.ocrResults = response.data;
+          this.processingTime = response.processingTime;
+          this.snackBar.open(`OCR completed successfully in ${response.processingTime}s!`, 'Close', { duration: 3000 });
         },
         error: (error) => {
           this.isOcrProcessing = false;
-          this.snackBar.open('OCR processing failed. Please try again.', 'Close', { duration: 5000 });
+          this.hasOcrError = true;
+          this.ocrErrorMessage = error.message;
+          this.snackBar.open(`OCR processing failed: ${error.message}`, 'Close', { duration: 5000 });
           console.error('OCR Error:', error);
         }
       });
@@ -158,15 +232,12 @@ export class NewReportComponent implements OnInit, OnDestroy {
 
   // Use OCR extracted data
   useExtractedData(): void {
-    if (this.ocrResults && this.ocrResults.extractedData) {
-      const data = this.ocrResults.extractedData;
-      
+    if (this.ocrResults) {
       this.reportForm.patchValue({
-        accountNumber: data.accountNumber || '',
-        accountHolderName: data.accountHolderName || '',
-        bankName: data.bankName || '',
-        branchName: data.branchName || '',
-        ifscCode: data.ifscCode || ''
+        accountNumber: this.ocrResults.accountNumber.value || '',
+        accountHolderName: this.ocrResults.accountHolderName.value || '',
+        bankName: this.ocrResults.bankName.value || '',
+        routingNumber: this.ocrResults.routingNumber.value || ''
       });
 
       // Trigger ANN analysis after using extracted data
@@ -265,9 +336,12 @@ export class NewReportComponent implements OnInit, OnDestroy {
   resetForm(): void {
     this.reportForm.reset();
     this.uploadedFiles = [];
-    this.ocrCompleted = false;
-    this.ocrResults = null;
+    this.resetOcrState();
     this.annResults = null;
+    
+    if (this.fileInput) {
+      this.fileInput.nativeElement.value = '';
+    }
   }
 
   private markFormGroupTouched(): void {
@@ -310,5 +384,57 @@ export class NewReportComponent implements OnInit, OnDestroy {
     if (bytes === 0) return '0 Bytes';
     const i = Math.floor(Math.log(bytes) / Math.log(1024));
     return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+  }
+
+  // OCR Helper Methods
+  getConfidenceColor(confidence: number): string {
+    return this.ocrService.getConfidenceColor(confidence);
+  }
+
+  getConfidenceText(confidence: number): string {
+    return this.ocrService.getConfidenceText(confidence);
+  }
+
+  getConfidencePercentage(confidence: number): string {
+    return Math.round(confidence * 100) + '%';
+  }
+
+  // Export Methods
+  exportAsJson(): void {
+    if (!this.ocrResults) {
+      this.snackBar.open('No OCR results to export', 'Close', { duration: 3000 });
+      return;
+    }
+    
+    const jsonContent = this.ocrService.exportToJson(this.ocrResults);
+    const filename = `ocr_result_${new Date().toISOString().split('T')[0]}.json`;
+    this.ocrService.downloadFile(jsonContent, filename, 'application/json');
+    this.snackBar.open('OCR results exported as JSON', 'Close', { duration: 3000 });
+  }
+
+  exportAsCsv(): void {
+    if (!this.ocrResults) {
+      this.snackBar.open('No OCR results to export', 'Close', { duration: 3000 });
+      return;
+    }
+    
+    const csvContent = this.ocrService.exportToCsv(this.ocrResults);
+    const filename = `ocr_result_${new Date().toISOString().split('T')[0]}.csv`;
+    this.ocrService.downloadFile(csvContent, filename, 'text/csv');
+    this.snackBar.open('OCR results exported as CSV', 'Close', { duration: 3000 });
+  }
+
+  private showError(message: string): void {
+    this.snackBar.open(message, 'Close', {
+      duration: 5000,
+      panelClass: ['error-snackbar']
+    });
+  }
+
+  private showSuccess(message: string): void {
+    this.snackBar.open(message, 'Close', {
+      duration: 3000,
+      panelClass: ['success-snackbar']
+    });
   }
 }

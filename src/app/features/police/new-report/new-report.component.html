@@ -56,6 +56,13 @@
             <mat-icon matSuffix>confirmation_number</mat-icon>
             <mat-error>{{ getFieldError('ifscCode') }}</mat-error>
           </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Routing Number</mat-label>
+            <input matInput formControlName="routingNumber" placeholder="Enter routing number">
+            <mat-icon matSuffix>route</mat-icon>
+            <mat-error>{{ getFieldError('routingNumber') }}</mat-error>
+          </mat-form-field>
         </div>
       </mat-card-content>
     </mat-card>
@@ -127,16 +134,40 @@
         <!-- File Upload Area -->
         <div 
           class="file-upload-area"
-          [class.dragover]="false"
+          [class.dragover]="isDragOver"
+          [class.has-error]="hasOcrError"
           (dragover)="onDragOver($event)"
+          (dragleave)="onDragLeave($event)"
           (drop)="onDrop($event)"
-          (click)="fileInput.click()">
+          (click)="triggerFileInput()">
           <div class="upload-content">
-            <mat-icon class="upload-icon">cloud_upload</mat-icon>
-            <div class="upload-text">Click to upload or drag and drop</div>
-            <div class="upload-subtext">Supports JPEG, PNG files up to 10MB each</div>
+            <mat-icon class="upload-icon" [color]="hasOcrError ? 'warn' : 'primary'">
+              {{ hasOcrError ? 'error' : 'cloud_upload' }}
+            </mat-icon>
+            <div class="upload-text">
+              {{ isDragOver ? 'Drop file here' : 'Click to upload or drag and drop' }}
+            </div>
+            <div class="upload-subtext">
+              {{ hasOcrError ? ocrErrorMessage : 'Supports JPEG, PNG files up to 10MB' }}
+            </div>
           </div>
-          <input #fileInput type="file" hidden accept="image/*" multiple (change)="onFileSelected($event)">
+          <input #fileInput type="file" hidden accept=".jpg,.jpeg,.png" (change)="onFileSelected($event)">
+        </div>
+
+        <!-- Image Preview -->
+        <div *ngIf="previewUrl" class="image-preview">
+          <div class="preview-header">
+            <h4>Image Preview</h4>
+            <button 
+              type="button" 
+              mat-icon-button 
+              color="warn" 
+              (click)="removeFile(0)"
+              class="remove-preview">
+              <mat-icon>close</mat-icon>
+            </button>
+          </div>
+          <img [src]="previewUrl" alt="Uploaded document" class="preview-image">
         </div>
 
         <!-- Uploaded Files List -->
@@ -172,16 +203,36 @@
           <div class="ocr-header">
             <h4>OCR Processing</h4>
             <div class="ocr-status">
-              <mat-chip [color]="ocrCompleted ? 'primary' : 'default'">
+              <mat-chip [color]="ocrCompleted ? 'primary' : hasOcrError ? 'warn' : 'default'">
                 <mat-icon *ngIf="ocrCompleted">check_circle</mat-icon>
                 <mat-icon *ngIf="isOcrProcessing">hourglass_empty</mat-icon>
-                <mat-icon *ngIf="!isOcrProcessing && !ocrCompleted">radio_button_unchecked</mat-icon>
-                {{ isOcrProcessing ? 'Processing...' : ocrCompleted ? 'Completed' : 'Ready' }}
+                <mat-icon *ngIf="hasOcrError">error</mat-icon>
+                <mat-icon *ngIf="!isOcrProcessing && !ocrCompleted && !hasOcrError">radio_button_unchecked</mat-icon>
+                {{ isOcrProcessing ? 'Processing...' : ocrCompleted ? `Completed (${processingTime}s)` : hasOcrError ? 'Failed' : 'Ready' }}
               </mat-chip>
             </div>
           </div>
 
-          <div class="ocr-actions">
+          <!-- Processing Progress -->
+          <div *ngIf="isOcrProcessing" class="processing-indicator">
+            <mat-progress-bar mode="indeterminate" color="primary"></mat-progress-bar>
+            <p class="processing-text">Extracting bank document information...</p>
+          </div>
+
+          <!-- Error Display -->
+          <div *ngIf="hasOcrError" class="ocr-error">
+            <mat-icon color="warn">error</mat-icon>
+            <span>{{ ocrErrorMessage }}</span>
+            <button 
+              type="button" 
+              mat-button 
+              color="primary"
+              (click)="processOCR()">
+              Try Again
+            </button>
+          </div>
+
+          <div class="ocr-actions" *ngIf="!hasOcrError">
             <button 
               type="button" 
               mat-raised-button 
@@ -198,29 +249,108 @@
           <div *ngIf="ocrResults && ocrCompleted" class="ocr-results">
             <div class="results-header">
               <h4>Extracted Data</h4>
-              <div class="confidence-score">
-                <span>Confidence: {{ (ocrResults.confidence * 100) | number:'1.0-0' }}%</span>
+              <div class="results-actions">
+                <button 
+                  type="button" 
+                  mat-icon-button 
+                  [matMenuTriggerFor]="exportMenu"
+                  matTooltip="Export Results">
+                  <mat-icon>download</mat-icon>
+                </button>
+                <mat-menu #exportMenu="matMenu">
+                  <button mat-menu-item (click)="exportAsJson()">
+                    <mat-icon>code</mat-icon>
+                    Export as JSON
+                  </button>
+                  <button mat-menu-item (click)="exportAsCsv()">
+                    <mat-icon>table_chart</mat-icon>
+                    Export as CSV
+                  </button>
+                </mat-menu>
               </div>
             </div>
             
             <div class="extracted-fields">
-              <div class="field-group">
-                <label>Account Number:</label>
-                <span>{{ ocrResults.extractedData.accountNumber || 'Not found' }}</span>
+              <div class="field-item">
+                <div class="field-header">
+                  <label>Bank Name:</label>
+                  <div class="confidence-indicator">
+                    <mat-chip [color]="getConfidenceColor(ocrResults.bankName.confidence)" size="small">
+                      {{ getConfidencePercentage(ocrResults.bankName.confidence) }}
+                    </mat-chip>
+                  </div>
+                </div>
+                <div class="field-value nepali-text">{{ ocrResults.bankName.value || 'Not detected' }}</div>
+                <div class="confidence-text">{{ getConfidenceText(ocrResults.bankName.confidence) }}</div>
               </div>
-              <div class="field-group">
-                <label>Account Holder:</label>
-                <span>{{ ocrResults.extractedData.accountHolderName || 'Not found' }}</span>
+
+              <div class="field-item">
+                <div class="field-header">
+                  <label>Account Holder Name:</label>
+                  <div class="confidence-indicator">
+                    <mat-chip [color]="getConfidenceColor(ocrResults.accountHolderName.confidence)" size="small">
+                      {{ getConfidencePercentage(ocrResults.accountHolderName.confidence) }}
+                    </mat-chip>
+                  </div>
+                </div>
+                <div class="field-value nepali-text">{{ ocrResults.accountHolderName.value || 'Not detected' }}</div>
+                <div class="confidence-text">{{ getConfidenceText(ocrResults.accountHolderName.confidence) }}</div>
               </div>
-              <div class="field-group">
-                <label>Bank Name:</label>
-                <span>{{ ocrResults.extractedData.bankName || 'Not found' }}</span>
+
+              <div class="field-item">
+                <div class="field-header">
+                  <label>Account Number:</label>
+                  <div class="confidence-indicator">
+                    <mat-chip [color]="getConfidenceColor(ocrResults.accountNumber.confidence)" size="small">
+                      {{ getConfidencePercentage(ocrResults.accountNumber.confidence) }}
+                    </mat-chip>
+                  </div>
+                </div>
+                <div class="field-value">{{ ocrResults.accountNumber.value || 'Not detected' }}</div>
+                <div class="confidence-text">{{ getConfidenceText(ocrResults.accountNumber.confidence) }}</div>
               </div>
-              <div class="field-group">
-                <label>IFSC Code:</label>
-                <span>{{ ocrResults.extractedData.ifscCode || 'Not found' }}</span>
+
+              <div class="field-item">
+                <div class="field-header">
+                  <label>Routing Number:</label>
+                  <div class="confidence-indicator">
+                    <mat-chip [color]="getConfidenceColor(ocrResults.routingNumber.confidence)" size="small">
+                      {{ getConfidencePercentage(ocrResults.routingNumber.confidence) }}
+                    </mat-chip>
+                  </div>
+                </div>
+                <div class="field-value">{{ ocrResults.routingNumber.value || 'Not detected' }}</div>
+                <div class="confidence-text">{{ getConfidenceText(ocrResults.routingNumber.confidence) }}</div>
+              </div>
+
+              <div class="field-item">
+                <div class="field-header">
+                  <label>Amount:</label>
+                  <div class="confidence-indicator">
+                    <mat-chip [color]="getConfidenceColor(ocrResults.amount.confidence)" size="small">
+                      {{ getConfidencePercentage(ocrResults.amount.confidence) }}
+                    </mat-chip>
+                  </div>
+                </div>
+                <div class="field-value">{{ ocrResults.amount.value || 'Not detected' }}</div>
+                <div class="confidence-text">{{ getConfidenceText(ocrResults.amount.confidence) }}</div>
+              </div>
+
+              <div class="field-item">
+                <div class="field-header">
+                  <label>Date:</label>
+                  <div class="confidence-indicator">
+                    <mat-chip [color]="getConfidenceColor(ocrResults.date.confidence)" size="small">
+                      {{ getConfidencePercentage(ocrResults.date.confidence) }}
+                    </mat-chip>
+                  </div>
+                </div>
+                <div class="field-value">{{ ocrResults.date.value || 'Not detected' }}</div>
+                <div class="confidence-text">{{ getConfidenceText(ocrResults.date.confidence) }}</div>
               </div>
             </div>
+
+            <mat-divider></mat-divider>
 
             <div class="ocr-actions">
               <button 
@@ -230,6 +360,15 @@
                 (click)="useExtractedData()">
                 <mat-icon>input</mat-icon>
                 Use Extracted Data
+              </button>
+              
+              <button 
+                type="button" 
+                mat-button 
+                color="primary"
+                (click)="processOCR()">
+                <mat-icon>refresh</mat-icon>
+                Re-process
               </button>
             </div>
           </div>

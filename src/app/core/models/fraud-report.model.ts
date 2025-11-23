@@ -104,6 +104,68 @@ export interface ExtractedAccountData {
   date?: string;
 }
 
+// New OCR API Models
+export interface OcrField {
+  value: string;
+  confidence: number;
+}
+
+export interface OcrData {
+  bankName: OcrField;
+  accountHolderName: OcrField;
+  accountNumber: OcrField;
+  routingNumber: OcrField;
+  amount: OcrField;
+  date: OcrField;
+}
+
+export interface OcrSuccessResponse {
+  success: true;
+  data: OcrData;
+  message: string;
+  processingTime: number;
+}
+
+export interface OcrErrorResponse {
+  success: false;
+  message: string;
+  error: string;
+}
+
+export type OcrResponse = OcrSuccessResponse | OcrErrorResponse;
+
+export interface ExportData {
+  bankName: string;
+  accountHolderName: string;
+  accountNumber: string;
+  routingNumber: string;
+  amount: string;
+  date: string;
+  extractedAt: string;
+  confidenceScores: {
+    bankName: number;
+    accountHolderName: number;
+    accountNumber: number;
+    routingNumber: number;
+    amount: number;
+    date: number;
+  };
+}
+
+export enum FileUploadError {
+  FILE_TOO_LARGE = 'FILE_TOO_LARGE',
+  INVALID_FILE_FORMAT = 'INVALID_FILE_FORMAT',
+  CORRUPTED_IMAGE = 'CORRUPTED_IMAGE',
+  NO_TEXT_DETECTED = 'NO_TEXT_DETECTED',
+  OCR_PROCESSING_FAILED = 'OCR_PROCESSING_FAILED'
+}
+
+export interface FileValidationResult {
+  isValid: boolean;
+  error?: string;
+  errorType?: FileUploadError;
+}
+
 export interface CreateReportRequest {
   accountNumber: string;
   accountHolderName: string;

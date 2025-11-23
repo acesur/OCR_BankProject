@@ -3,6 +3,9 @@
 // Angular Material pre-built theme
 @import '@angular/material/prebuilt-themes/indigo-pink.css';
 
+// Google Fonts import for Nepali/Devanagari text
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;500;600&family=Roboto:wght@300;400;500;700&display=swap');
+
 // Custom CSS Variables
 :root {
   --primary-blue: #1565c0;
@@ -366,4 +369,48 @@ body {
   border-radius: 4px;
   border: 1px solid #badbcc;
   margin: 16px 0;
+}
+
+// Nepali Text Support
+.nepali-text {
+  font-family: 'Noto Sans Devanagari', 'Mukti', 'Kalimati', sans-serif !important;
+  line-height: 1.6 !important;
+  direction: ltr;
+  unicode-bidi: embed;
+  font-variant-numeric: lining-nums;
+}
+
+// Custom Snackbar Styles
+.success-snackbar {
+  background: #4caf50 !important;
+  color: white !important;
+  font-weight: 500 !important;
+}
+
+.error-snackbar {
+  background: #f44336 !important;
+  color: white !important;
+  font-weight: 500 !important;
+}
+
+// OCR Specific Styles
+.ocr-confidence-excellent { color: #2e7d32; }
+.ocr-confidence-good { color: #388e3c; }
+.ocr-confidence-fair { color: #f57c00; }
+.ocr-confidence-poor { color: #ff5722; }
+.ocr-confidence-very-poor { color: #d32f2f; }
+
+// Mobile responsiveness for OCR
+@media (max-width: 768px) {
+  .ocr-results .extracted-fields {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .image-preview .preview-image {
+    max-height: 200px;
+  }
+  
+  .file-upload-area {
+    padding: 24px 16px !important;
+  }
 }

@@ -30,6 +30,7 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatStepperModule } from '@angular/material/stepper';
+import { MatTooltipModule } from '@angular/material/tooltip';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -59,7 +60,8 @@ export const appConfig: ApplicationConfig = {
       MatDatepickerModule,
       MatNativeDateModule,
       MatSlideToggleModule,
-      MatStepperModule
+      MatStepperModule,
+      MatTooltipModule
     ])
   ]
 };
